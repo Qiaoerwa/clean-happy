@@ -1,0 +1,861 @@
+<!--
+ * @Description: 
+ * @Autor: fylih
+ * @Date: 2021-04-12 14:44:59
+ * @LastEditors: fylih
+ * @LastEditTime: 2021-05-17 10:11:40
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document</title>
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 5px;
+    min-width: 300px;
+    max-width: 500px;
+    min-height: 500px;
+    max-height: 1000px;
+    border-radius: 5px;
+    border: 3px solid #318591;
+    background: #fae1e5;
+    overflow: hidden;
+  }
+
+  .header {
+    width: 100%;
+    height: 60px;
+    padding-left: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .header span {
+    font-weight: bold;
+    font-size: 24px;
+    line-height: 24px;
+  }
+
+  .header span.add_score {
+    font-size: 14px;
+    display: inline-block;
+    margin-left: 5px;
+    transition: all 0.6s;
+    color: red;
+  }
+
+  .header span.name {
+    font-size: 16px;
+    line-height: 14px;
+  }
+
+  .middium {
+    width: 100%;
+    height: calc(100% - 150px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .middium .box_container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+  }
+
+  .middium .box_container div {
+    transition: all 0.225s;
+  }
+
+  .middium .box_container div.opacity {
+    opacity: 0.5;
+  }
+
+  .middium .box_container div.opacity_clear {
+    opacity: 0;
+  }
+
+  .middium .box_container div.scale {
+    transform: scale(0.9);
+  }
+
+  .bottom {
+    width: 100%;
+    height: 90px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .bottom .time,
+  .bottom .reset {
+    font-weight: bold;
+    font-size: 20px;
+    margin-left: 20px;
+  }
+
+  .bottom .add_time {
+    display: inline-block;
+    margin-left: 10px;
+    transition: all 0.6s;
+    color: red;
+  }
+</style>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <span>总分：</span>
+        <span class="score">0</span>
+        <span class="add_score">0</span>
+      </div>
+      <div>
+        <span class="name"></span>
+      </div>
+    </div>
+    <div class="middium">
+      <div class="box_container"></div>
+    </div>
+    <div class="bottom">
+      <div>
+        <span class="time"></span>
+        <span class="add_time"></span>
+      </div>
+      <button class="reset">重新开始</button>
+    </div>
+  </div>
+</body>
+<script src="./utils/alert.js"></script>
+<script src="./utils/date.js"></script>
+<script>
+  const userId = sessionStorage.getItem('id')
+  const userName = sessionStorage.getItem('name')
+  if (!userId) {
+    Alert('获取用户信息失败')
+    location.href = './index.html'
+  }
+  var nameContainer = document.getElementsByClassName("name")[0];
+  nameContainer.innerHTML = userName
+  // 获取容器
+  var container = document.getElementsByClassName("box_container")[0];
+  // 获取计分栏
+  var headerScore = document.getElementsByClassName("score")[0];
+  var headerAddScore = document.getElementsByClassName("add_score")[0];
+  // 时间
+  var time = 60;
+  var bottomAddTime = document.getElementsByClassName("add_time")[0];
+  var timeSet = null;
+  var timeContainer = document.getElementsByClassName("time")[0];
+  // 重置
+  var resetButton = document.getElementsByClassName("reset")[0];
+  resetButton.onclick = () => {
+    if (mouseFlag) {
+      time = 60;
+      totalScore = 0;
+      combo = 0
+      init();
+    }
+  };
+  // 鼠标是否可操控
+  var mouseFlag = false;
+  // 容器的宽度
+  var containerWidth = parseInt(getComputedStyle(container).width);
+  // 容器的高度
+  var containerHeight = parseInt(getComputedStyle(container).height);
+  // 一行几个方块
+  var boxRowNum = 10;
+  // 一竖几个方块
+  var boxColNum = 15;
+  // 单个方块的宽
+  var boxWidth = containerWidth / boxRowNum;
+  // 单个方块的高
+  var boxHeight = containerHeight / boxColNum;
+  // 总方块数（两个container高度）
+  var boxNum = boxColNum * boxRowNum * 2;
+  // 重新定义container的高度为两个container高度
+  var calcContainerHeight = boxColNum * boxHeight * 2;
+  container.style.height = calcContainerHeight + "px";
+  // 往上滑一个container高度
+  container.style.top = -calcContainerHeight / 2 + "px";
+  // 总分
+  var totalScore = 0;
+  // 方块配置
+  var boxOption = [
+    {
+      name: "a",
+      backgroundColor: "rgba(245, 1, 1, 0.4)",
+      backgroundImage: "./img/p1.png",
+    },
+    {
+      name: "b",
+      backgroundColor: "rgba(17, 224, 196, 0.565)",
+      backgroundImage: "./img/p2.png",
+    },
+    {
+      name: "c",
+      backgroundColor: "rgba(252, 227, 2, 0.537)",
+      backgroundImage: "./img/p3.png",
+    },
+    {
+      name: "d",
+      backgroundColor: "#dd912d",
+      backgroundImage: "./img/p4.png",
+    },
+    {
+      name: "e",
+      backgroundColor: "rgba(111, 224, 89, 0.77)",
+      backgroundImage: "./img/p5.png",
+    },
+    {
+      name: "f",
+      backgroundColor: "rgba(63, 81, 181, 0.69)",
+      backgroundImage: "./img/p6.png",
+    },
+  ];
+  // 方块排列数组
+  var boxAry = [];
+  // 加载
+  function loadBox() {
+    container.innerHTML = "";
+    boxAry.forEach((x, i) => {
+      x.div.style.left = (i % boxRowNum) * boxWidth + "px";
+      x.div.style.top = parseInt(i / boxRowNum) * boxHeight + "px";
+      container.appendChild(x.div);
+    });
+    headerScore.innerHTML = totalScore;
+  }
+  var combo = 0
+  var maxCombo = 0
+  // 每次方块变化后的消除判断
+  function judge() {
+    mouseFlag = false;
+    var _isNeedReplace = false;
+    // 大于总数的一半，屏幕内的方块才计算
+    for (let i = boxAry.length / 2; i < boxAry.length; i++) {
+      deepCheck(i);
+    }
+    function deepCheck(index) {
+      if (
+        index % boxRowNum !== boxRowNum - 1 &&
+        index % boxRowNum !== boxRowNum - 2 &&
+        boxAry[index].name === boxAry[index + 1]?.name &&
+        boxAry[index].name === boxAry[index + 2]?.name
+      ) {
+        _isNeedReplace = true;
+        boxAry[index].flag = true;
+        boxAry[index + 1].flag = true;
+        boxAry[index + 2].flag = true;
+      }
+      if (
+        boxAry[index].name === boxAry[index + boxRowNum]?.name &&
+        boxAry[index].name === boxAry[index + boxRowNum * 2]?.name
+      ) {
+        _isNeedReplace = true;
+        boxAry[index].flag = true;
+        boxAry[index + boxRowNum].flag = true;
+        boxAry[index + boxRowNum * 2].flag = true;
+      }
+    }
+    //   计分
+    if (_isNeedReplace) {
+      combo++
+      if (combo > maxCombo) {
+        maxCombo = combo
+      }
+      clearBox();
+    } else {
+      combo = 0
+      mouseFlag = true;
+    }
+    return _isNeedReplace;
+  }
+  // 方块消除计算分数
+  function clearBox() {
+    var singleScore = 0;
+    let clearAry = [];
+    boxAry.forEach((x, i) => {
+      if (x.flag) {
+        clearAry.push({
+          name: x.name,
+          index: i,
+        });
+      }
+    });
+    boxOption.forEach((i) => {
+      singleScore += calc(
+        clearAry.filter((j) => j.name === i.name)
+      );
+    });
+    let scoreOption = Math.pow(1.2, combo - 1)
+    finalScore = parseInt(singleScore * scoreOption)
+    if (combo > 1) {
+      headerAddScore.innerHTML = "+" + finalScore + "&nbsp;combo" + (combo - 1);
+    } else {
+      headerAddScore.innerHTML = "+" + finalScore;
+    }
+    headerAddScore.style.transform = "scale(1.2)";
+    setTimeout(() => {
+      headerAddScore.style.transform = "scale(0)";
+      totalScore += finalScore;
+    }, 600);
+    setTimeout(() => {
+      boxAry.forEach((x, i) => {
+        if (x.flag) {
+          boxAry[i].div.classList.add("opacity");
+        }
+      });
+    }, 50);
+    setTimeout(() => {
+      boxAry.forEach((x, i) => {
+        if (x.flag) {
+          boxAry[i].div.classList.remove("opacity");
+        }
+      });
+    }, 275);
+    setTimeout(() => {
+      boxAry.forEach((x, i) => {
+        if (x.flag) {
+          boxAry[i].div.classList.add("opacity_clear");
+        }
+      });
+    }, 500);
+    // 方块下落
+    setTimeout(() => {
+      let clearIndexAry = [];
+      boxAry.forEach((x, i) => {
+        if (x.flag) {
+          clearIndexAry.push(i);
+        }
+      });
+      clearIndexAry.forEach((x) => {
+        for (let i = 1; i <= boxNum / boxRowNum; i++) {
+          // 方块的上i个方块
+          let topBoxIndex = x - i * boxRowNum;
+          if (topBoxIndex < 0) {
+            // 如果上面没有了就停止
+            boxAry.splice(topBoxIndex + boxRowNum, 1, new Box());
+            break;
+          } else {
+            // 往下移动
+            container.childNodes[topBoxIndex].style.top =
+              parseInt(container.childNodes[topBoxIndex].style.top) +
+              boxHeight +
+              "px";
+            // 转换下标
+            boxAry.splice(topBoxIndex + boxRowNum, 1, boxAry[topBoxIndex]);
+          }
+        }
+      });
+      setTimeout(() => {
+        loadBox();
+        judge();
+      }, 225);
+    }, 775);
+    // 计算
+    function calc(ary) {
+      if (ary.length === 0) {
+        return 0;
+      }
+      let threeAry = [],
+        fourAry = [],
+        fiveAry = [];
+      ary.forEach((x) => {
+        // 判断三个的
+        {
+          // 横向
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name
+          ) {
+            threeAry.push({
+              indexAry: [x.index, x.index - 1, x.index - 2],
+              type: "3heng",
+            });
+          }
+          // 竖向
+          if (
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name
+          ) {
+            threeAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+              ],
+              type: "3shu",
+            });
+          }
+        }
+        // 判断四个的
+        {
+          // 竖向
+          if (
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 3]?.name
+          ) {
+            fourAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+                x.index - boxRowNum * 3,
+              ],
+              type: "4shu",
+            });
+          }
+          // 横向
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.index % boxRowNum !== 2 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name &&
+            x.name === boxAry[x.index - 3]?.name
+          ) {
+            fourAry.push({
+              indexAry: [x.index, x.index - 1, x.index - 2, x.index - 3],
+              type: "4heng",
+            });
+          }
+        }
+        // 判断五个的
+        {
+          // 竖向
+          if (
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 3]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 4]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+                x.index - boxRowNum * 3,
+                x.index - boxRowNum * 4,
+              ],
+              type: "5shu",
+            });
+          }
+          // 横向
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.index % boxRowNum !== 2 &&
+            x.index % boxRowNum !== 3 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name &&
+            x.name === boxAry[x.index - 3]?.name &&
+            x.name === boxAry[x.index - 4]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index - 3,
+                x.index - 4,
+              ],
+              type: "5heng",
+            });
+          }
+          // L的第一种
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name &&
+            x.name === boxAry[x.index - 2 - boxRowNum]?.name &&
+            x.name === boxAry[x.index - 2 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index - 2 - boxRowNum,
+                x.index - 2 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // L的第二种
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - 2 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index - 1 - boxRowNum * 2,
+                x.index - 2 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // L的第三种
+          if (
+            x.index % boxRowNum !== boxRowNum - 1 &&
+            x.index % boxRowNum !== boxRowNum - 2 &&
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index + 1 - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index + 2 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index + 1 - boxRowNum * 2,
+                x.index + 2 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // L的第四种
+          if (
+            x.index % boxRowNum !== boxRowNum - 1 &&
+            x.index % boxRowNum !== boxRowNum - 2 &&
+            x.name === boxAry[x.index + 1]?.name &&
+            x.name === boxAry[x.index + 2]?.name &&
+            x.name === boxAry[x.index + 2 - boxRowNum]?.name &&
+            x.name === boxAry[x.index + 2 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index + 1,
+                x.index + 2,
+                x.index + 2 - boxRowNum,
+                x.index + 2 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // 十字型
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name &&
+            x.name === boxAry[x.index - 1 + boxRowNum]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index - 1 + boxRowNum,
+                x.index - 1 - boxRowNum,
+              ],
+              type: "5other",
+            });
+          }
+          // T字型第一种
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== boxRowNum - 1 &&
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index + 1 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+                x.index - 1 - boxRowNum * 2,
+                x.index + 1 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // T字型第二种
+          if (
+            x.index % boxRowNum !== boxRowNum - 1 &&
+            x.index % boxRowNum !== boxRowNum - 2 &&
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index + 1 - boxRowNum]?.name &&
+            x.name === boxAry[x.index + 2 - boxRowNum]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+                x.index + 1 - boxRowNum,
+                x.index + 2 - boxRowNum,
+              ],
+              type: "5other",
+            });
+          }
+          // T字型第三种
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - 1]?.name &&
+            x.name === boxAry[x.index - 2]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum * 2]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - 1,
+                x.index - 2,
+                x.index - 1 - boxRowNum,
+                x.index - 1 - boxRowNum * 2,
+              ],
+              type: "5other",
+            });
+          }
+          // T字型第四种
+          if (
+            x.index % boxRowNum !== 0 &&
+            x.index % boxRowNum !== 1 &&
+            x.name === boxAry[x.index - boxRowNum]?.name &&
+            x.name === boxAry[x.index - boxRowNum * 2]?.name &&
+            x.name === boxAry[x.index - 1 - boxRowNum]?.name &&
+            x.name === boxAry[x.index - 2 - boxRowNum]?.name
+          ) {
+            fiveAry.push({
+              indexAry: [
+                x.index,
+                x.index - boxRowNum,
+                x.index - boxRowNum * 2,
+                x.index - 1 - boxRowNum,
+                x.index - 2 - boxRowNum,
+              ],
+              type: "5other",
+            });
+          }
+        }
+      });
+      // 清除多余的重复
+      fourAry.forEach((x) => {
+        for (let i = 0; i < threeAry.length; i++) {
+          if (getInclude(x.indexAry, threeAry[i].indexAry)) {
+            threeAry.splice(i, 1);
+            i--;
+          }
+        }
+      });
+      fiveAry.forEach((x) => {
+        for (let i = 0; i < fourAry.length; i++) {
+          if (getInclude(x.indexAry, fourAry[i].indexAry)) {
+            fourAry.splice(i, 1);
+            i--;
+          }
+        }
+        for (let i = 0; i < threeAry.length; i++) {
+          if (getInclude(x.indexAry, threeAry[i].indexAry)) {
+            threeAry.splice(i, 1);
+            i--;
+          }
+        }
+      });
+      let score = 0;
+      score = threeAry.length * 10 + fourAry.length * 30 + fiveAry.length * 100;
+      let addTime = 0
+      if (fiveAry.length > 0) {
+        addTime += fiveAry.length * 2
+        bottomAddTime.innerHTML = "+" + addTime;
+        bottomAddTime.style.transform = "scale(1.3)";
+        setTimeout(() => {
+          bottomAddTime.style.transform = "scale(0)";
+          time += addTime;
+        }, 600);
+      }
+      return score;
+    }
+  }
+  // 判断数组中是否包含另一个数组
+  function getInclude(arr1, arr2) {
+    let temp = [];
+    for (const item of arr2) {
+      arr1.includes(item) ? temp.push(item) : "";
+    }
+    return temp.length < arr2.length ? false : true;
+  }
+  // 鼠标控制方块移动
+  function moveBox(index, direction) {
+    if (index < boxRowNum && direction === "up") return;
+    if (index > boxNum - (boxRowNum + 1) && direction === "down") return;
+    if (index % boxRowNum === 0 && direction === "left") return;
+    if (index % boxRowNum === boxRowNum - 1 && direction === "right") return;
+    if (direction === "up") {
+      swap(boxAry, index - boxRowNum, index);
+    }
+    if (direction === "down") {
+      swap(boxAry, index + boxRowNum, index);
+    }
+    if (direction === "left") {
+      swap(boxAry, index - 1, index);
+    }
+    if (direction === "right") {
+      swap(boxAry, index + 1, index);
+    }
+  }
+  // 交换方块位置
+  function swap(ary, index1, index2) {
+    [ary[index1], ary[index2]] = [ary[index2], ary[index1]];
+    loadBox();
+    if (!judge([index1, index2])) {
+      setTimeout(() => {
+        [ary[index2], ary[index1]] = [ary[index1], ary[index2]];
+        loadBox();
+      }, 300);
+    }
+  }
+  // 初始化
+  function init() {
+    mouseFlag = true;
+    mousePoint();
+    timeContainer.innerHTML = "剩余时间：" + time;
+    if (timeSet) {
+      clearInterval(timeSet);
+      timeSet = null;
+    }
+    timeSet = setInterval(() => {
+      if (time < 1) {
+        let params = {
+          id: userId,
+          name: userName,
+          currentScore: totalScore,
+          maxCombo: maxCombo,
+          date: new Date().Format('yyyy-MM-dd hh:mm:ss')
+        }
+        clearInterval(timeSet);
+        timeSet = null;
+        container.ontouchstart = null;
+        axios.post('http://47.117.2.239:3000/setRanking', params).then(() => {
+          location.href = './end.html'
+        })
+        return;
+      }
+      time--;
+      timeContainer.innerHTML = "剩余时间：" + time;
+    }, 1000);
+    boxAry.length = 0;
+    for (var i = 0; i < boxNum; i++) {
+      var box = new Box();
+      boxAry.push(box);
+    }
+    loadBox();
+    judge();
+  }
+  // 鼠标事件
+  function mousePoint() {
+    // 容器上鼠标滑动方向的判断
+    container.ontouchstart = (e) => {
+      e.preventDefault();
+      if (!mouseFlag) return;
+      if (e.target.parentNode.className !== "box_container") return;
+      e.target.classList.add("scale");
+      // 获取点击的方块的序列
+      var index = Array.prototype.indexOf.call(
+        e.target.parentNode.children,
+        e.target
+      );
+      var startX = 0,
+        startY = 0,
+        endX = 0,
+        endY = 0;
+      startX = e.targetTouches[0].clientX;
+      startY = e.targetTouches[0].clientY;
+      container.ontouchend = () => {
+        container.touchmove = null;
+        e.target.classList.remove("scale");
+      };
+      container.ontouchmove = (e) => {
+        // 判断移动方向
+        endX = e.targetTouches[0].clientX;
+        endY = e.targetTouches[0].clientY;
+        if (endX - startX > 5 && endX - startX > Math.abs(endY - startY)) {
+          moveBox(index, "right");
+          container.ontouchmove = null;
+        }
+        if (
+          endX - startX < -5 &&
+          Math.abs(endX - startX) > Math.abs(endY - startY)
+        ) {
+          moveBox(index, "left");
+          container.ontouchmove = null;
+        }
+        if (endY - startY > 5 && endY - startY > Math.abs(endX - startX)) {
+          moveBox(index, "down");
+          container.ontouchmove = null;
+        }
+        if (
+          endY - startY < -5 &&
+          Math.abs(endY - startY) > Math.abs(endX - startX)
+        ) {
+          moveBox(index, "up");
+          container.ontouchmove = null;
+        }
+      };
+    };
+  } function Box() {
+    // 内部变量随机数
+    var _ramdom = Math.floor(Math.random() * 6);
+    this.div = document.createElement("div");
+    this.name = boxOption[_ramdom].name;
+    this.flag = false;
+    this.div.style.position = "absolute";
+    this.div.style.backgroundColor = boxOption[_ramdom].backgroundColor;
+    // this.div.style.backgroundImage = "url(" + boxOption[_ramdom].backgroundImage + ")";
+    this.div.style.backgroundSize = "100% 100%";
+    this.div.style.width = boxWidth - 2 + "px";
+    this.div.style.height = boxHeight - 2 + "px";
+    this.div.style.border = "2px solid #318591";
+    this.div.style.borderRadius = "5px";
+    this.div.style.margin = "1px";
+  }
+  init();
+
+</script>
+
+</html>

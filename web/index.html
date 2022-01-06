@@ -1,0 +1,143 @@
+<!--
+ * @Description: 
+ * @Autor: fylih
+ * @Date: 2021-05-08 15:48:25
+ * @LastEditors: fylih
+ * @LastEditTime: 2021-05-17 12:00:50
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<style>
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        justify-content: center;
+        overflow: hidden;
+        color: #2c3e28c4;
+        background: linear-gradient(#2e01f528, #11e0c42d, #fce30232, #dd912d4c);
+    }
+
+    .page {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .box {
+        width: 300px;
+        height: 300px;
+        background: inherit;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+    }
+
+    .name,
+    .pwd {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .name input,
+    .pwd input {
+        height: 32px;
+        line-height: 32px;
+        font-size: 16px;
+        padding-left: 10px;
+    }
+
+    .button {
+        display: flex;
+        justify-content: space-around;
+    }
+
+    .button div {
+        cursor: pointer;
+        border: 1px solid #000;
+        border-radius: 3px;
+        background: rgb(48, 184, 199);
+        width: 80px;
+        height: 40px;
+        line-height: 40px;
+        text-align: center;
+        margin-left: 10px;
+        font-size: 20px;
+        font-weight: bold;
+    }
+</style>
+
+<body>
+    <div class="page">
+        <div class="box">
+            <div class="name">
+                昵称：<input type="text">
+            </div>
+            <div class="pwd">
+                密码：<input type="password">
+            </div>
+            <div class="button">
+                <div id="login">登录</div>
+                <div id="register">注册</div>
+                <div id="rank">排行榜</div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="./utils/alert.js"></script>
+<script>
+    var loginBtn = document.getElementById('login')
+    var registerBtn = document.getElementById('register')
+    var nickNameInput = document.getElementsByTagName('input')[0]
+    var pwdInput = document.getElementsByTagName('input')[1]
+    var nickName = null
+    var pwd = null
+    nickNameInput.onchange = function nickNameChange(e) {
+        nickName = e.target.value
+    }
+    pwdInput.onchange = function nickNameChange(e) {
+        pwd = e.target.value
+    }
+    loginBtn.onclick = () => {
+        let params = {
+            name: nickName,
+            pwd: pwd
+        }
+        axios.post('http://47.117.2.239:3000/login', params).then(res => {
+            Alert(res.data.msg);
+            if (res.data.code === 1) {
+                sessionStorage.setItem('id', res.data.data.id)
+                sessionStorage.setItem('name', res.data.data.name)
+                location.href = './home.html'
+            }
+        })
+    }
+    registerBtn.onclick = () => {
+        let params = {
+            name: nickName,
+            pwd: pwd
+        }
+        axios.post('http://47.117.2.239:3000/register', params).then(res => {
+            Alert(res.data.msg);
+        })
+    }
+    var rankButton = document.getElementById("rank");
+    rankButton.onclick = () => {
+        location.href = './rank.html'
+    };
+</script>
+
+</html>

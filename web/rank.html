@@ -1,0 +1,144 @@
+<!--
+ * @Description: 
+ * @Autor: fylih
+ * @Date: 2021-05-11 14:37:55
+ * @LastEditors: fylih
+ * @LastEditTime: 2021-05-14 18:29:46
+-->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<style>
+    body,
+    html {
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page {
+        padding-top: 10px;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(rgb(82, 240, 248, 0.3), rgb(124, 213, 99, 0.3));
+        overflow: scroll
+    }
+
+    .page .title {
+        width: 100%;
+        overflow: scroll;
+        text-align: center;
+        font-size: 20px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+
+    .page .list .ul {
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        height: 30px;
+        line-height: 30px;
+        padding: 0 10px;
+        margin: 10px;
+        border-radius: 3px;
+        overflow: scroll;
+    }
+
+    .page .list .ul span:nth-child(1) {
+        display: inline-block;
+        width: 130px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .page .list .ul span:nth-child(2),
+    .page .list .ul span:nth-child(3) {
+        display: inline-block;
+        width: 60px;
+    }
+
+    .page .list .ul:nth-child(2) {
+        background: rgb(213, 148, 99);
+    }
+
+    .page .list .ul:nth-child(3) {
+        background: rgb(124, 213, 99);
+    }
+
+    .page .list .ul:nth-child(4) {
+        background: rgb(188, 221, 89);
+    }
+
+    .li_score {
+        font-weight: bold
+    }
+
+    .back {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        border: 2px solid #000;
+        font-size: 12px;
+        padding: 5px 10px;
+        border-radius: 2px;
+        background: rgb(171, 147, 147);
+    }
+</style>
+
+<body>
+    <div class="page">
+        <div class="back">返回</div>
+        <div class="title">排行榜</div>
+        <div class="list">
+            <div class="ul">
+                <span>昵称</span>
+                <span>连击</span>
+                <span>分数</span>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="./utils/alert.js"></script>
+<script>
+    var rankList = document.getElementsByClassName('list')[0]
+    var backBtn = document.getElementsByClassName('back')[0]
+    axios.post('http://47.117.2.239:3000/getRanking').then(res => {
+        let list = res.data.data
+        list.sort((a, b) => b.maxScore - a.maxScore)
+        list.forEach((x, i) => {
+            let div = document.createElement('div')
+            div.className = 'ul'
+            let span1 = document.createElement('span')
+            let span2 = document.createElement('span')
+            let span3 = document.createElement('span')
+            let span4 = document.createElement('span')
+            span1.innerHTML = i + 1 + '.&nbsp&nbsp' + x.name
+            span1.className = 'li_name'
+            span2.innerHTML = x.maxCombo || '-'
+            span2.className = 'li_combo'
+            span3.innerHTML = x.maxScore
+            span3.className = 'li_score'
+            div.appendChild(span1)
+            div.appendChild(span2)
+            div.appendChild(span3)
+            rankList.appendChild(div)
+        });
+    }).catch(err => {
+        Alert(err.message);
+    })
+    backBtn.onclick = () => {
+        history.go(-1)
+    }
+</script>
+
+</html>
